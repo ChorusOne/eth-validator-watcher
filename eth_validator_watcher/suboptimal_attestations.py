@@ -2,6 +2,7 @@
 
 import functools
 from collections import defaultdict
+from time import time
 
 from prometheus_client import Gauge
 
@@ -21,6 +22,22 @@ print = functools.partial(print, flush=True)
 metric_suboptimal_attestations_rate_gauge = Gauge(
     "suboptimal_attestations_rate",
     "Suboptimal attestations rate",
+)
+
+metric_suboptimal_attestations = Gauge(
+    "suboptimal_attestations",
+    "Suboptimal attestations",
+    [
+        "pubkey",
+        "index",
+        "slot",
+        "epoch",
+    ],  # maybe to add "deployment_id", "validator_id"
+)
+metric_suboptimal_attestations_duration_sec = Gauge(
+    "suboptimal_attestations_duration_sec",
+    "Suboptimal attestations duration in seconds",
+    ["label", "slot", "number_of_validators"],
 )
 
 
@@ -43,6 +60,7 @@ def process_suboptimal_attestations(
     """
     if slot < 1:
         return set()
+    now = time()
 
     previous_slot = slot - 1
 
@@ -125,6 +143,23 @@ def process_suboptimal_attestations(
         - our_validators_index_that_attested_optimally_during_previous_slot
     )
 
+    for (
+        index
+    ) in our_validators_index_that_did_not_attest_optimally_during_previous_slot:
+        validator = our_active_validators_index_to_validator[index]
+        metric_suboptimal_attestations.labels(
+            pubkey=validator.pubkey,
+            index=index,
+            slot=previous_slot,
+            epoch=epoch_of_previous_slot,
+        ).set(1)
+
+    metric_suboptimal_attestations_duration_sec.labels(
+        label="suboptimal_attestations",
+        slot=previous_slot,
+        number_of_validators=len(our_active_validators_index),
+    ).set(time() - now)
+
     suboptimal_attestations_rate = (
         len(our_validators_index_that_did_not_attest_optimally_during_previous_slot)
         / len(our_validators_index_that_had_to_attest_during_previous_slot)
@@ -133,7 +168,9 @@ def process_suboptimal_attestations(
     )
 
     if suboptimal_attestations_rate is not None:
-        metric_suboptimal_attestations_rate_gauge.set(100 * suboptimal_attestations_rate)
+        metric_suboptimal_attestations_rate_gauge.set(
+            100 * suboptimal_attestations_rate
+        )
 
     if len(our_validators_index_that_did_not_attest_optimally_during_previous_slot) > 0:
         assert suboptimal_attestations_rate is not None
@@ -182,9 +219,9 @@ def aggregate_attestations(block: Block, slot: int) -> dict[int, list[bool]]:
     )
 
     # TODO: Write this code with dict comprehension
-    committee_index_to_list_of_aggregation_bools: dict[
-        int, list[list[bool]]
-    ] = defaultdict(list)
+    committee_index_to_list_of_aggregation_bools: dict[int, list[list[bool]]] = (
+        defaultdict(list)
+    )
 
     for attestation in filtered_attestations:
         aggregated_bits_little_endian_with_last_bit = attestation.aggregation_bits

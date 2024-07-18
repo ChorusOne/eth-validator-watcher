@@ -20,8 +20,7 @@ def test_fee_recipient_set_while_execution_url_not_set() -> None:
         _handler(
             beacon_url="",
             execution_url=None,
-            pubkeys_file_path=None,
-            web3signer_url=None,
+            pubkeys_url=None,
             fee_recipient="something",
             slack_channel="MY SLACK CHANNEL",
             beacon_type=BeaconType.OLD_TEKU,
@@ -35,24 +34,8 @@ def test_fee_recipient_not_valid() -> None:
         _handler(
             beacon_url="",
             execution_url="http://localhost:8545",
-            pubkeys_file_path=None,
-            web3signer_url=None,
+            pubkeys_url=None,
             fee_recipient="something",
-            slack_channel="MY SLACK CHANNEL",
-            beacon_type=BeaconType.OLD_TEKU,
-            relays_url=[],
-            liveness_file=None,
-        )
-
-
-def test_slack_token_not_defined() -> None:
-    with raises(BadParameter):
-        _handler(
-            beacon_url="",
-            execution_url=None,
-            pubkeys_file_path=None,
-            web3signer_url=None,
-            fee_recipient=None,
             slack_channel="MY SLACK CHANNEL",
             beacon_type=BeaconType.OLD_TEKU,
             relays_url=[],
@@ -72,7 +55,7 @@ def test_invalid_pubkeys() -> None:
                 )
             )
 
-    def get_our_pubkeys(pubkeys_file_path: Path, web3signer: None) -> set[str]:
+    def get_our_pubkeys(pubkeys_file_path: Path) -> dict[str, tuple[str, str]]:
         assert pubkeys_file_path == Path("/path/to/pubkeys")
         raise ValueError("Invalid pubkeys")
 
@@ -93,8 +76,8 @@ def test_invalid_pubkeys() -> None:
         _handler(
             beacon_url="http://localhost:5052",
             execution_url=None,
-            pubkeys_file_path=Path("/path/to/pubkeys"),
-            web3signer_url=None,
+            pubkeys_url=Path("/path/to/pubkeys"),
+            # web3signer_url=None,
             fee_recipient=None,
             slack_channel=None,
             beacon_type=BeaconType.OLD_TEKU,
@@ -115,7 +98,7 @@ def test_chain_not_ready() -> None:
                 )
             )
 
-    def get_our_pubkeys(pubkeys_file_path: Path, web3signer: None) -> set[str]:
+    def get_our_pubkeys(pubkeys_file_path: Path) -> set[str]:
         return {"0x12345", "0x67890"}
 
     def slots(genesis_time: int) -> Iterator[Tuple[(int, int)]]:
@@ -142,8 +125,8 @@ def test_chain_not_ready() -> None:
     _handler(
         beacon_url="http://localhost:5052",
         execution_url=None,
-        pubkeys_file_path=Path("/path/to/pubkeys"),
-        web3signer_url=None,
+        pubkeys_url=Path("/path/to/pubkeys"),
+        # web3signer_url=None,
         fee_recipient=None,
         slack_channel=None,
         beacon_type=BeaconType.OLD_TEKU,
@@ -221,17 +204,24 @@ def test_nominal() -> None:
         yield 63, 1664
         yield 64, 1676
 
-    def get_our_pubkeys(pubkeys_file_path: Path, web3signer: Web3Signer) -> set[str]:
+    def get_our_pubkeys(pubkeys_file_path: Path) -> dict[str, tuple[str, str]]:
         assert pubkeys_file_path == Path("/path/to/pubkeys")
-        assert isinstance(web3signer, Web3Signer)
 
-        return {"0xaaa", "0xbbb", "0xccc", "0xddd", "0xeee", "0xfff"}
+        return {
+            "0xaaa": ("teku.0", "eth-holesky02"),
+            "0xbbb": ("teku.0", "eth-holesky02"),
+            "0xccc": ("teku.0", "eth-holesky02"),
+            "0xddd": ("teku.0", "eth-holesky02"),
+            "0xeee": ("teku.0", "eth-holesky02"),
+            "0xfff": ("teku.0", "eth-holesky02"),
+        }
 
     def process_missed_attestations(
         beacon: Beacon,
         beacon_type: BeaconType,
         epoch_to_index_to_validator_index: LimitedDict,
         epoch: int,
+        slack: Slack | None,
     ) -> set[int]:
         assert isinstance(beacon, Beacon)
         assert beacon_type is BeaconType.OLD_TEKU
@@ -264,10 +254,20 @@ def test_nominal() -> None:
         return {4}
 
     def process_future_blocks_proposal(
-        beacon: Beacon, pubkeys: set[str], slot: int, is_new_epoch: bool
+        beacon: Beacon,
+        pubkeys: dict[str, tuple[str, str]],
+        slot: int,
+        is_new_epoch: bool,
     ) -> int:
         assert isinstance(beacon, Beacon)
-        assert pubkeys == {"0xaaa", "0xbbb", "0xccc", "0xddd", "0xeee", "0xfff"}
+        assert pubkeys == {
+            "0xaaa": ("teku.0", "eth-holesky02"),
+            "0xbbb": ("teku.0", "eth-holesky02"),
+            "0xccc": ("teku.0", "eth-holesky02"),
+            "0xddd": ("teku.0", "eth-holesky02"),
+            "0xeee": ("teku.0", "eth-holesky02"),
+            "0xfff": ("teku.0", "eth-holesky02"),
+        }
         assert slot in {63, 64}
         assert is_new_epoch is True
 
@@ -283,7 +283,14 @@ def test_nominal() -> None:
         assert isinstance(beacon, Beacon)
         assert last_processed_finalized_slot == 63
         assert slot in {63, 64}
-        assert pubkeys == {"0xaaa", "0xbbb", "0xccc", "0xddd", "0xeee", "0xfff"}
+        assert pubkeys == {
+            "0xaaa": ("teku.0", "eth-holesky02"),
+            "0xbbb": ("teku.0", "eth-holesky02"),
+            "0xccc": ("teku.0", "eth-holesky02"),
+            "0xddd": ("teku.0", "eth-holesky02"),
+            "0xeee": ("teku.0", "eth-holesky02"),
+            "0xfff": ("teku.0", "eth-holesky02"),
+        }
         assert isinstance(slack, Slack)
 
         return 63
@@ -315,7 +322,14 @@ def test_nominal() -> None:
         assert isinstance(beacon, Beacon)
         assert potential_block == "A BLOCK"
         assert slot in {63, 64}
-        assert pubkeys == {"0xaaa", "0xbbb", "0xccc", "0xddd", "0xeee", "0xfff"}
+        assert pubkeys == {
+            "0xaaa": ("teku.0", "eth-holesky02"),
+            "0xbbb": ("teku.0", "eth-holesky02"),
+            "0xccc": ("teku.0", "eth-holesky02"),
+            "0xddd": ("teku.0", "eth-holesky02"),
+            "0xeee": ("teku.0", "eth-holesky02"),
+            "0xfff": ("teku.0", "eth-holesky02"),
+        }
         assert isinstance(slack, Slack)
 
         return True
@@ -363,8 +377,7 @@ def test_nominal() -> None:
     _handler(
         beacon_url="http://localhost:5052",
         execution_url=None,
-        pubkeys_file_path=Path("/path/to/pubkeys"),
-        web3signer_url="http://localhost:9000",
+        pubkeys_url=Path("/path/to/pubkeys"),
         fee_recipient=None,
         slack_channel="my slack channel",
         beacon_type=BeaconType.OLD_TEKU,

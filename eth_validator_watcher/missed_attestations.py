@@ -1,6 +1,7 @@
 """Contains the logic to check if the validators missed attestations."""
 
 import functools
+from time import time
 
 from prometheus_client import Gauge
 
@@ -22,12 +23,37 @@ metric_double_missed_attestations_count = Gauge(
     "Double missed attestations count",
 )
 
+metric_missed_attestations = Gauge(
+    "missed_attestations",
+    "Missed attestations",
+    ["pubkey", "index", "epoch"],
+)
+
+metric_double_missed_attestations = Gauge(
+    "double_missed_attestations",
+    "Double missed attestations",
+    ["pubkey", "index", "epoch"],
+)
+
+metric_missed_attestations_duration_sec = Gauge(
+    "missed_attestations_duration_sec",
+    "Missed attestations duration in seconds",
+    ["label", "epoch", "number_of_validators"],
+)
+
+metric_double_missed_attestations_duration_sec = Gauge(
+    "double_missed_attestations_duration_sec",
+    "Double missed attestations duration in seconds",
+    ["label", "epoch", "number_of_validators"],
+)
+
 
 def process_missed_attestations(
     beacon: Beacon,
     beacon_type: BeaconType,
     epoch_to_index_to_validator_index: LimitedDict,
     epoch: int,
+    slack: Slack | None,
 ) -> set[int]:
     """Process missed attestations.
 
@@ -40,9 +66,11 @@ def process_missed_attestations(
         inner value           : validators
     epoch                        : Epoch where the missed attestations are checked
     """
+    # we need a metric to see how much time it takes dfor the fn to run
     if epoch < 1:
         return set()
 
+    now = time()
     index_to_validator: dict[int, Validators.DataItem.Validator] = (
         epoch_to_index_to_validator_index[epoch - 1]
         if epoch - 1 in epoch_to_index_to_validator_index
@@ -59,6 +87,19 @@ def process_missed_attestations(
     }
 
     metric_missed_attestations_count.set(len(dead_indexes))
+    metric_missed_attestations_duration_sec.labels(
+        label="missed_attestations",
+        epoch=epoch,
+        number_of_validators=len(index_to_validator),
+    ).set((time() - now))
+
+    for index in dead_indexes:
+        validator = index_to_validator[index]
+        metric_missed_attestations.labels(
+            pubkey=validator.pubkey,
+            index=index,
+            epoch=epoch,
+        ).set(1)
 
     if len(dead_indexes) == 0:
         return set()
@@ -77,6 +118,15 @@ def process_missed_attestations(
         f"{len(dead_indexes) - len(short_first_pubkeys)} more "
         f"missed attestation at epoch {epoch - 1}"
     )
+
+    if slack is not None:
+        message_slack = (
+            f"😱 Our validator `{short_first_pubkeys_str}` and "
+            f"`{len(dead_indexes) - len(short_first_pubkeys)}` more "
+            f"missed 1 attestation at epoch `{epoch - 1}`"
+        )
+
+        slack.send_message(message_slack)
 
     return dead_indexes
 
@@ -107,13 +157,28 @@ def process_double_missed_attestations(
     if epoch < 2:
         return set()
 
+    now = time()
     double_dead_indexes = dead_indexes & previous_dead_indexes
     metric_double_missed_attestations_count.set(len(double_dead_indexes))
+
+    for index in double_dead_indexes:
+        validator = epoch_to_index_to_validator_index[epoch - 1][index]
+        metric_double_missed_attestations.labels(
+            pubkey=validator.pubkey,
+            index=index,
+            epoch=epoch,
+        ).set(1)
 
     if len(double_dead_indexes) == 0:
         return set()
 
     index_to_validator = epoch_to_index_to_validator_index[epoch - 1]
+
+    metric_double_missed_attestations_duration_sec.labels(
+        label="double_missed_attestations",
+        epoch=epoch,
+        number_of_validators=len(index_to_validator),
+    ).set((time() - now))
     first_indexes = list(double_dead_indexes)[:5]
 
     first_pubkeys = (
