@@ -31,6 +31,9 @@ class Validators(BaseModel):
     data: list[DataItem]
 
 
+Status = Validators.DataItem.StatusEnum
+
+
 class Genesis(BaseModel):
     class Data(BaseModel):
         genesis_time: int
@@ -179,3 +182,13 @@ class Rewards(BaseModel):
         total_rewards: list[TotalReward]
 
     data: Data
+
+
+class KeyReporterQueryResponse(BaseModel):
+
+    class KeyReporterValidator(BaseModel):
+        validator_id: str
+        deployment_id: str
+        validator_public_key: str
+
+    validators: list[KeyReporterValidator]
