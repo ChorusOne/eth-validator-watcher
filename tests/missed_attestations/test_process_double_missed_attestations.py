@@ -10,11 +10,7 @@ Validator = Validators.DataItem.Validator
 def test_process_double_missed_attestations_low_epoch() -> None:
     for epoch in 0, 1:
         actual = process_double_missed_attestations(
-            {42, 43, 44, 45},
-            {40, 41, 42, 43},
-            LimitedDict(0),
-            epoch,
-            None,
+            {42, 43, 44, 45}, {40, 41, 42, 43}, LimitedDict(0), epoch, None, {}
         )
 
         expected: set[int] = set()
@@ -41,6 +37,14 @@ def test_process_double_missed_attestations_some_dead_indexes() -> None:
         44: Validator(pubkey="pubkey44", effective_balance=32000000000, slashed=False),
         45: Validator(pubkey="pubkey45", effective_balance=32000000000, slashed=False),
     }
+    vals_from_key_reporter: dict[str, tuple[str, str]] = {
+        "pubkey40": ("deployment_id", "validator_id"),
+        "pubkey41": ("deployment_id", "validator_id"),
+        "pubkey42": ("deployment_id", "validator_id"),
+        "pubkey43": ("deployment_id", "validator_id"),
+        "pubkey44": ("deployment_id", "validator_id"),
+        "pubkey45": ("deployment_id", "validator_id"),
+    }
 
     actual = process_double_missed_attestations(
         {42, 43, 44, 45},
@@ -48,6 +52,7 @@ def test_process_double_missed_attestations_some_dead_indexes() -> None:
         epoch_to_index_to_validator_index,
         1664,
         slack,  # type: ignore
+        vals_from_key_reporter,
     )
 
     expected = {42, 43}
@@ -72,6 +77,7 @@ def test_process_double_missed_attestations_no_dead_indexes() -> None:
         epoch_to_index_to_validator_index,
         1664,
         None,
+        vals_from_key_reporter={},
     )
 
     excepted: Set[int] = set()

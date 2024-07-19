@@ -22,7 +22,7 @@ def test_fee_recipient_set_while_execution_url_not_set() -> None:
             execution_url=None,
             pubkeys_url=None,
             fee_recipient="something",
-            slack_channel="MY SLACK CHANNEL",
+            slack_channel=None,
             beacon_type=BeaconType.OLD_TEKU,
             relays_url=[],
             liveness_file=None,
@@ -36,7 +36,7 @@ def test_fee_recipient_not_valid() -> None:
             execution_url="http://localhost:8545",
             pubkeys_url=None,
             fee_recipient="something",
-            slack_channel="MY SLACK CHANNEL",
+            slack_channel=None,
             beacon_type=BeaconType.OLD_TEKU,
             relays_url=[],
             liveness_file=None,
@@ -222,6 +222,7 @@ def test_nominal() -> None:
         epoch_to_index_to_validator_index: LimitedDict,
         epoch: int,
         slack: Slack | None,
+        vals_from_key_reporter: dict[str, tuple[str, str]],
     ) -> set[int]:
         assert isinstance(beacon, Beacon)
         assert beacon_type is BeaconType.OLD_TEKU
@@ -240,6 +241,7 @@ def test_nominal() -> None:
         epoch_to_index_to_validator_index: LimitedDict,
         epoch: int,
         slack: Slack,
+        vals_from_key_reporter: dict[str, tuple[str, str]],
     ) -> set[int]:
         assert indexes_that_missed_attestation == {0, 4}
         assert indexes_that_previously_missed_attestation == set()
@@ -372,7 +374,9 @@ def test_nominal() -> None:
     entrypoint.process_rewards = process_rewards  # type: ignore
     entrypoint.write_liveness_file = write_liveness_file  # type: ignore
 
-    environ["SLACK_TOKEN"] = "my_slack_token"
+    environ["SLACK_URL"] = (
+        "https://hooks.slack.com/services/xxxxx/yyy/zzzzzzzzzzzzzzzzzzzzzzzz "
+    )
 
     _handler(
         beacon_url="http://localhost:5052",

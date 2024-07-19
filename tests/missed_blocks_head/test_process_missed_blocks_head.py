@@ -65,7 +65,13 @@ def test_process_missed_blocks_head_habemus_blockam() -> None:
     slack = Slack()
 
     counter_before = metric_missed_block_proposals_head_count.collect()[0].samples[0].value  # type: ignore
-    assert not process_missed_blocks_head(Beacon(), "A BLOCK", 2, {"0xaaa", "0xddd"}, slack)  # type: ignore
+    vals_from_key_reporter = {
+        "0xaaa": ("deployment_id", "validator_id"),
+        "0xbbb": ("deployment_id", "validator_id"),
+    }
+    assert not process_missed_blocks_head(
+        Beacon(), "A BLOCK", 2, vals_from_key_reporter, slack
+    )  # type: ignore
     counter_after = metric_missed_block_proposals_head_count.collect()[0].samples[0].value  # type: ignore
 
     delta = counter_after - counter_before

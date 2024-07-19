@@ -17,6 +17,7 @@ def test_process_missed_attestations_low_epoch() -> None:
         epoch_to_index_to_validator_index=LimitedDict(0),
         epoch=0,
         slack=None,
+        vals_from_key_reporter={},
     )
 
     expected: set[int] = set()
@@ -45,12 +46,19 @@ def test_process_missed_attestations_some_dead_indexes() -> None:
         44: Validator(pubkey="pubkey44", effective_balance=32000000000, slashed=False),
     }
 
+    vals_from_key_reporter = {
+        "pubkey42": ("deployment_id", "validator_id"),
+        "pubkey43": ("deployment_id", "validator_id"),
+        "pubkey44": ("deployment_id", "validator_id"),
+    }
+
     actual = process_missed_attestations(
         beacon=Beacon(),  # type: ignore
         beacon_type=BeaconType.OLD_TEKU,
         epoch_to_index_to_validator_index=epoch_to_index_to_validator_client,
         epoch=1,
         slack=None,
+        vals_from_key_reporter=vals_from_key_reporter,
     )
 
     assert expected == actual
@@ -77,12 +85,19 @@ def test_process_missed_attestations_no_dead_indexes() -> None:
         44: Validator(pubkey="pubkey44", effective_balance=32000000000, slashed=False),
     }
 
+    vals_from_key_reporter = {
+        "pubkey42": ("deployment_id", "validator_id"),
+        "pubkey43": ("deployment_id", "validator_id"),
+        "pubkey44": ("deployment_id", "validator_id"),
+    }
+
     actual = process_missed_attestations(
         beacon=Beacon(),  # type: ignore
         beacon_type=BeaconType.OLD_TEKU,
         epoch_to_index_to_validator_index=epoch_to_index_to_validator_client,
         epoch=1,
         slack=None,
+        vals_from_key_reporter=vals_from_key_reporter,
     )
 
     assert expected == actual
