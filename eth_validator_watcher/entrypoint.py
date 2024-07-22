@@ -393,10 +393,7 @@ def _handler(
             block = potential_block
 
             process_suboptimal_attestations(
-                beacon,
-                block,
-                slot,
-                our_active_idx2val,
+                beacon, block, slot, our_active_idx2val, our_validators
             )
 
             process_fee_recipient(

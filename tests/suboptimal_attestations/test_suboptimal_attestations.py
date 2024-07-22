@@ -66,6 +66,7 @@ def test_low_slot() -> None:
         block="A dummy block",  # type: ignore
         slot=0,
         our_active_validators_index_to_validator={},
+        vals_from_key_reporter={},
     )
 
     assert expected == actual
@@ -145,6 +146,12 @@ def test_our_pubkeys() -> None:
             30: Validator(pubkey="0xccc", effective_balance=32000000000, slashed=False),
             50: Validator(pubkey="0xeee", effective_balance=32000000000, slashed=False),
             70: Validator(pubkey="0xggg", effective_balance=32000000000, slashed=False),
+        },
+        vals_from_key_reporter={
+            "0xaaa": (1, 1),
+            "0xccc": (2, 2),
+            "0xeee": (3, 3),
+            "0xggg": (4, 4),
         },
     )
 

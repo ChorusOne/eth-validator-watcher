@@ -32,7 +32,9 @@ metric_suboptimal_attestations = Gauge(
         "index",
         "slot",
         "epoch",
-    ],  # maybe to add "deployment_id", "validator_id"
+        "deployment_id",
+        "validator_id",
+    ],
 )
 metric_suboptimal_attestations_duration_sec = Gauge(
     "suboptimal_attestations_duration_sec",
@@ -46,6 +48,7 @@ def process_suboptimal_attestations(
     block: Block,
     slot: int,
     our_active_validators_index_to_validator: dict[int, Validators.DataItem.Validator],
+    vals_from_key_reporter: dict[str, tuple[str, str]],
 ) -> set[int]:
     """Process sub-optimal attestations
 
@@ -152,6 +155,8 @@ def process_suboptimal_attestations(
             index=index,
             slot=previous_slot,
             epoch=epoch_of_previous_slot,
+            deployment_id=vals_from_key_reporter[validator.pubkey][0],
+            validator_id=vals_from_key_reporter[validator.pubkey][1],
         ).set(1)
 
     metric_suboptimal_attestations_duration_sec.labels(
