@@ -341,7 +341,12 @@ def _handler(
         if should_process_missed_attestations:
             our_validators_indexes_that_missed_attestation = (
                 process_missed_attestations(
-                    beacon, beacon_type, our_epoch2active_idx2val, epoch, slack
+                    beacon,
+                    beacon_type,
+                    our_epoch2active_idx2val,
+                    epoch,
+                    slack,
+                    our_validators,
                 )
             )
 
@@ -351,6 +356,7 @@ def _handler(
                 our_epoch2active_idx2val,
                 epoch,
                 slack,
+                our_validators,
             )
 
             last_missed_attestations_process_epoch = epoch

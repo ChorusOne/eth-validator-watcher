@@ -26,13 +26,13 @@ metric_double_missed_attestations_count = Gauge(
 metric_missed_attestations = Gauge(
     "missed_attestations",
     "Missed attestations",
-    ["pubkey", "index", "epoch"],
+    ["pubkey", "index", "epoch", "deployment_id", "validator_id"],
 )
 
 metric_double_missed_attestations = Gauge(
     "double_missed_attestations",
     "Double missed attestations",
-    ["pubkey", "index", "epoch"],
+    ["pubkey", "index", "epoch", "deployment_id", "validator_id"],
 )
 
 metric_missed_attestations_duration_sec = Gauge(
@@ -54,6 +54,7 @@ def process_missed_attestations(
     epoch_to_index_to_validator_index: LimitedDict,
     epoch: int,
     slack: Slack | None,
+    vals_from_key_reporter: dict[str, tuple[str, str]],
 ) -> set[int]:
     """Process missed attestations.
 
@@ -99,6 +100,8 @@ def process_missed_attestations(
             pubkey=validator.pubkey,
             index=index,
             epoch=epoch,
+            deployment_id=vals_from_key_reporter[validator.pubkey][0],
+            validator_id=vals_from_key_reporter[validator.pubkey][1],
         ).set(1)
 
     if len(dead_indexes) == 0:
@@ -137,6 +140,7 @@ def process_double_missed_attestations(
     epoch_to_index_to_validator_index: LimitedDict,
     epoch: int,
     slack: Slack | None,
+    vals_from_key_reporter: dict[str, tuple[str, str]],
 ) -> set[int]:
     """Process double missed attestations.
 
@@ -167,6 +171,8 @@ def process_double_missed_attestations(
             pubkey=validator.pubkey,
             index=index,
             epoch=epoch,
+            deployment_id=vals_from_key_reporter[validator.pubkey][0],
+            validator_id=vals_from_key_reporter[validator.pubkey][1],
         ).set(1)
 
     if len(double_dead_indexes) == 0:
