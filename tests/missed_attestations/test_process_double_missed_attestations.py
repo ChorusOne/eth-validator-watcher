@@ -71,13 +71,22 @@ def test_process_double_missed_attestations_no_dead_indexes() -> None:
         45: Validator(pubkey="pubkey45", effective_balance=32000000000, slashed=False),
     }
 
+    vals_from_key_reporter: dict[str, tuple[str, str]] = {
+        "pubkey40": ("deployment_id1", "validator_id"),
+        "pubkey41": ("deployment_id2", "validator_id"),
+        "pubkey42": ("deployment_id3", "validator_id"),
+        "pubkey43": ("deployment_id4", "validator_id"),
+        "pubkey44": ("deployment_id5", "validator_id"),
+        "pubkey45": ("deployment_id6", "validator_id"),
+    }
+
     actual = process_double_missed_attestations(
         {44, 45},
         {40, 41},
         epoch_to_index_to_validator_index,
         1664,
         None,
-        vals_from_key_reporter={},
+        vals_from_key_reporter,
     )
 
     excepted: Set[int] = set()

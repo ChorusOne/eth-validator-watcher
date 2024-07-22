@@ -182,16 +182,16 @@ def test_process_missed_blocks_finalized_nominal() -> None:
             42,
             150,
             {
-                "0x10",  # too soon - slot: 42
-                "0x11",  # proposed - slot: 43
-                "0x12",  # missed   - slot: 44
-                "0x25",  # proposed - slot: 57
-                "0x26",  # proposed - slot: 58
-                "0x59",  # proposed - slot: 91
-                "0x66",  # missed   - slot: 98
-                "0x67",  # proposed - slot: 99
-                "0x68",  # proposed - slot: 100
-                "0x69",  # too late - slot: 101
+                "0x10": ("deployment_id", "validator_id"),  # too soon - slot: 42
+                "0x11": ("deployment_id", "validator_id"),  # proposed - slot: 43
+                "0x12": ("deployment_id", "validator_id"),  # missed   - slot: 44
+                "0x25": ("deployment_id", "validator_id"),  # proposed - slot: 57
+                "0x26": ("deployment_id", "validator_id"),  # proposed - slot: 58
+                "0x59": ("deployment_id", "validator_id"),  # proposed - slot: 91
+                "0x66": ("deployment_id", "validator_id"),  # missed   - slot: 98
+                "0x67": ("deployment_id", "validator_id"),  # proposed - slot: 99
+                "0x68": ("deployment_id", "validator_id"),  # proposed - slot: 100
+                "0x69": ("deployment_id", "validator_id"),  # too late - slot: 101
             },
             slack,  # type: ignore
         )

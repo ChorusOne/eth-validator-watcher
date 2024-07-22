@@ -171,8 +171,8 @@ def process_double_missed_attestations(
             pubkey=validator.pubkey,
             index=index,
             epoch=epoch,
-            # deployment_id=vals_from_key_reporter[validator.pubkey][0],
-            # validator_id=vals_from_key_reporter[validator.pubkey][1],
+            deployment_id=vals_from_key_reporter[validator.pubkey][0],
+            validator_id=vals_from_key_reporter[validator.pubkey][1],
         ).set(1)
 
     if len(double_dead_indexes) == 0:
@@ -184,8 +184,6 @@ def process_double_missed_attestations(
         label="double_missed_attestations",
         epoch=epoch,
         number_of_validators=len(index_to_validator),
-        deployment_id=vals_from_key_reporter[validator.pubkey][0],
-        validator_id=vals_from_key_reporter[validator.pubkey][1],
     ).set((time() - now))
     first_indexes = list(double_dead_indexes)[:5]
 

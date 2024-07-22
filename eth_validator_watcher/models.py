@@ -165,7 +165,7 @@ class ExecutionBlock(BaseModel):
 
 
 class Rewards(BaseModel):
-    class Data(BaseModel):mi
+    class Data(BaseModel):
         class IdealReward(BaseModel):
             effective_balance: int
             source: int
