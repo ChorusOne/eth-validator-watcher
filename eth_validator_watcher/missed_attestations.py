@@ -99,7 +99,7 @@ def process_missed_attestations(
         metric_missed_attestations.labels(
             pubkey=validator.pubkey,
             index=index,
-            epoch=epoch,
+            epoch=epoch - 1,
             deployment_id=vals_from_key_reporter[validator.pubkey][0],
             validator_id=vals_from_key_reporter[validator.pubkey][1],
         ).set(1)
@@ -170,7 +170,7 @@ def process_double_missed_attestations(
         metric_double_missed_attestations.labels(
             pubkey=validator.pubkey,
             index=index,
-            epoch=epoch,
+            epoch=epoch - 1,
             deployment_id=vals_from_key_reporter[validator.pubkey][0],
             validator_id=vals_from_key_reporter[validator.pubkey][1],
         ).set(1)
