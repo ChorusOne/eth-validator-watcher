@@ -1,6 +1,5 @@
 """Contains the Beacon class which is used to interact with the consensus layer node."""
 
-
 import functools
 from collections import defaultdict
 from functools import lru_cache
@@ -9,7 +8,15 @@ from typing import Any, Optional, Union
 from requests import HTTPError, Response, Session, codes
 from requests.adapters import HTTPAdapter, Retry
 from requests.exceptions import ChunkedEncodingError, RetryError
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_fixed
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_fixed,
+    after_log,
+)
+import logging
+import sys
 
 from .models import (
     BeaconType,
@@ -32,8 +39,11 @@ StatusEnum = Validators.DataItem.StatusEnum
 # Hard-coded for now, will need to move this to a config.
 TIMEOUT_BEACON_SEC = 90
 
-
 print = functools.partial(print, flush=True)
+
+logging.basicConfig(stream=sys.stderr, level=logging.WARNING)
+
+logger = logging.getLogger(__name__)
 
 
 class NoBlockError(Exception):
@@ -88,6 +98,7 @@ class Beacon:
         stop=stop_after_attempt(5),
         wait=wait_fixed(3),
         retry=retry_if_exception_type(ChunkedEncodingError),
+        after=after_log(logger, logging.DEBUG),
     )
     def __get_retry_not_found(self, *args: Any, **kwargs: Any) -> Response:
         """Wrapper around requests.get() with retry on 404"""
@@ -97,6 +108,7 @@ class Beacon:
         stop=stop_after_attempt(5),
         wait=wait_fixed(3),
         retry=retry_if_exception_type(ChunkedEncodingError),
+        after=after_log(logger, logging.DEBUG),
     )
     def __get(self, *args: Any, **kwargs: Any) -> Response:
         """Wrapper around requests.get()"""
@@ -106,6 +118,7 @@ class Beacon:
         stop=stop_after_attempt(5),
         wait=wait_fixed(3),
         retry=retry_if_exception_type(ChunkedEncodingError),
+        after=after_log(logger, logging.DEBUG),
     )
     def __post_retry_not_found(self, *args: Any, **kwargs: Any) -> Response:
         """Wrapper around requests.get() with retry on 404"""
@@ -129,7 +142,8 @@ class Beacon:
         """
         try:
             response = self.__get(
-                f"{self.__url}/eth/v1/beacon/headers/{block_identifier}", timeout=TIMEOUT_BEACON_SEC
+                f"{self.__url}/eth/v1/beacon/headers/{block_identifier}",
+                timeout=TIMEOUT_BEACON_SEC,
             )
 
             response.raise_for_status()
@@ -176,7 +190,8 @@ class Beacon:
         epoch: Epoch corresponding to the proposer duties to retrieve
         """
         response = self.__get_retry_not_found(
-            f"{self.__url}/eth/v1/validator/duties/proposer/{epoch}", timeout=TIMEOUT_BEACON_SEC
+            f"{self.__url}/eth/v1/validator/duties/proposer/{epoch}",
+            timeout=TIMEOUT_BEACON_SEC,
         )
 
         response.raise_for_status()
@@ -193,7 +208,8 @@ class Beacon:
         inner value             : Validator
         """
         response = self.__get_retry_not_found(
-            f"{self.__url}/eth/v1/beacon/states/head/validators", timeout=TIMEOUT_BEACON_SEC
+            f"{self.__url}/eth/v1/beacon/states/head/validators",
+            timeout=TIMEOUT_BEACON_SEC,
         )
 
         response.raise_for_status()
@@ -201,9 +217,9 @@ class Beacon:
 
         validators = Validators(**validators_dict)
 
-        result: dict[
-            StatusEnum, dict[int, Validators.DataItem.Validator]
-        ] = defaultdict(dict)
+        result: dict[StatusEnum, dict[int, Validators.DataItem.Validator]] = (
+            defaultdict(dict)
+        )
 
         for item in validators.data:
             result[item.status][item.index] = item.validator
